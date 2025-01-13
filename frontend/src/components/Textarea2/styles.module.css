@@ -1,0 +1,53 @@
+.textareaContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 35px;
+    font-family: Montserrat, Helvetica, Arial, sans-serif;
+}
+
+.textareaLabel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.textareaLabelText {
+    margin-bottom: 10px;
+    text-align: left;
+    font-size: 16px;
+}
+
+.textareaField {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    border-radius: 6px;
+    resize: none;
+    outline: none;
+    font-family: 'Montserrat', sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 20px;
+    color: #000;
+    padding: 12px 18px;
+    width: 100%;
+    max-width: 800px;
+}
+
+.textareaField:focus {
+    border: 1px solid #4A61DD;
+    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media screen and (max-width: 730px) {
+    .textareaLabel {
+        width: 100%;
+    }
+
+    .textareaField {
+        width: 100%;
+    }
+}
