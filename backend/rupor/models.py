@@ -35,6 +35,22 @@ class Blog(models.Model):
         verbose_name='Текстовое описание',
     )
     text = models.TextField('Текст блога')
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'На проверке'),
+            ('approved', 'Одобрено'),
+            ('blocked', 'Заблокировано'),
+        ],
+        default='pending',
+        verbose_name='Статус модерации',
+    )
+    moderation_reason = models.TextField(
+        null=True, blank=True, verbose_name='Причина блокировки'
+    )
+    embedding = models.JSONField(
+        null=True, blank=True, verbose_name='Эмбеддинг текста'
+    )
     tags = models.ManyToManyField(
         Tag,
         related_name='blog',
@@ -63,6 +79,19 @@ class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
     blog = models.ForeignKey(Blog, on_delete=models.CASCADE, related_name='comments')
     text = models.TextField()
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'На проверке'),
+            ('approved', 'Одобрено'),
+            ('blocked', 'Заблокировано'),
+        ],
+        default='pending',
+        verbose_name='Статус модерации',
+    )
+    moderation_reason = models.TextField(
+        null=True, blank=True, verbose_name='Причина блокировки'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

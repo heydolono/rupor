@@ -6,6 +6,8 @@ import { UserContext, AuthContext } from '../../contexts';
 import MetaTags from 'react-meta-tags';
 import Description from './description';
 import Comments from '../../components/Comments';
+import CardList from '../../components/card-list';
+import Card from '../../components/card';
 import cn from 'classnames';
 import styles from './styles.module.css';
 import { useBlog } from '../../utils/index.js';
@@ -13,6 +15,7 @@ import api from '../../api';
 
 const SingleCard = ({ loadItem, updateOrders }) => {
   const [loading, setLoading] = useState(true);
+  const [similarBlogs, setSimilarBlogs] = useState([]);
   const { blog, setBlog, handleLike, handleSubscribe } = useBlog();
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
@@ -30,8 +33,16 @@ const SingleCard = ({ loadItem, updateOrders }) => {
       });
   }, [id, history, setBlog]);
 
+  useEffect(() => {
+    api.getSimilarBlogs({ blog_id: id })
+      .then(setSimilarBlogs)
+      .catch(() => {});
+  }, [id]);
+
   const { url } = useRouteMatch();
-  const { author = {}, image, tags, name, text, is_favorited } = blog;
+  const { author = {}, image, tags, name, text, is_favorited, moderation_status, moderation_reason } = blog;
+  const isBlocked = moderation_status === 'blocked';
+  const isAuthor = (userContext || {}).id === (author || {}).id;
 
   return (
     <Main>
@@ -44,6 +55,24 @@ const SingleCard = ({ loadItem, updateOrders }) => {
         <div className={styles['single-card']}>
           <img src={image} alt={name} className={styles["single-card__image"]} />
           <div className={styles["single-card__info"]}>
+            {isBlocked && isAuthor && (
+              <div style={{
+                background: '#ffebee', border: '1px solid #ef5350',
+                borderRadius: '8px', padding: '12px 16px', marginBottom: '16px',
+                color: '#c62828', fontWeight: 'bold'
+              }}>
+                Заблокировано нейросетью: {moderation_reason || 'причина не указана'}
+              </div>
+            )}
+            {!isBlocked && (
+              <div style={{
+                background: '#e8f5e9', border: '1px solid #66bb6a',
+                borderRadius: '8px', padding: '6px 12px', marginBottom: '16px',
+                color: '#2e7d32', fontSize: '14px', display: 'inline-block', alignSelf: 'flex-start'
+              }}>
+                Проверено нейросетью
+              </div>
+            )}
             <div className={styles["single-card__header-info"]}>
               <h1 className={styles["single-card__title"]}>{name}</h1>
               {authContext && (
@@ -67,7 +96,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                     className={styles['single-card__link']}
                   />
                 </div>
-                {(userContext || {}).id === author.id && (
+                {isAuthor && (
                   <LinkComponent
                     href={`${url}/edit`}
                     title='Редактировать'
@@ -77,7 +106,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
               </p>
             </div>
             <div className={styles['single-card__buttons']}>
-              {(userContext || {}).id !== author.id && authContext && (
+              {!isAuthor && authContext && (
                 <Button
                   className={styles['single-card__button']}
                   modifier='style_light-blue'
@@ -89,8 +118,28 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                 </Button>
               )}
             </div>
-            <Description description={text} />
+            {!isBlocked && <Description description={text} />}
+            {isBlocked && !isAuthor && (
+              <p style={{ color: '#999', fontStyle: 'italic' }}>
+                Этот пост заблокирован модерацией
+              </p>
+            )}
             <Comments blogId={id} authContext={authContext} />
+            {similarBlogs.length > 0 && (
+              <div style={{ marginTop: '40px' }}>
+                <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '24px' }}>
+                  Похожие записи
+                </h2>
+                <p style={{ fontSize: '13px', color: '#666', marginTop: '-8px', marginBottom: '16px' }}>
+                  Найдено нейросетью по смыслу текста
+                </p>
+                <CardList>
+                  {similarBlogs.map(card => (
+                    <Card {...card} key={card.id} />
+                  ))}
+                </CardList>
+              </div>
+            )}
           </div>
         </div>
       </Container>

@@ -1,7 +1,7 @@
 import { Container, Input, Title, CheckboxGroup, Main, Form, Button, Textarea, FileInput } from '../../components';
 import styles from './styles.module.css';
 import api from '../../api';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTags } from '../../utils';
 import { useHistory } from 'react-router-dom';
 import MetaTags from 'react-meta-tags';
@@ -12,13 +12,42 @@ const BlogCreate = ({ onEdit }) => {
   const history = useHistory();
   const [blogText, setBlogText] = useState('');
   const [blogFile, setBlogFile] = useState(null);
+  const [suggestedTagIds, setSuggestedTagIds] = useState([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     api.getTags()
       .then(tags => {
-        setValue(tags.map(tag => ({ ...tag, value: true })));
+        setValue(tags.map(tag => ({ ...tag, value: false })));
       });
   }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!blogName.trim() && !blogText.trim()) {
+      setSuggestedTagIds([]);
+      return;
+    }
+    setSuggesting(true);
+    const safetyTimer = setTimeout(() => setSuggesting(false), 20000);
+    debounceRef.current = setTimeout(() => {
+      api.suggestTags({ name: blogName, text: blogText })
+        .then(res => {
+          const ids = (res.tags || []).map(t => t.id);
+          setSuggestedTagIds(ids);
+          setValue(prev => prev.map(tag => ({
+            ...tag,
+            value: ids.includes(tag.id) || tag.value,
+          })));
+        })
+        .catch(() => {})
+        .finally(() => {
+          setSuggesting(false);
+          clearTimeout(safetyTimer);
+        });
+    }, 800);
+  }, [blogName, blogText]);
 
   const checkIfDisabled = () => {
     return (
@@ -78,6 +107,16 @@ const BlogCreate = ({ onEdit }) => {
             checkboxClassName={styles.checkboxGroupItem}
             handleChange={handleChange}
           />
+          {suggesting && (
+            <p style={{ fontSize: '13px', color: '#999', marginTop: '4px' }}>
+              Нейросеть подбирает теги...
+            </p>
+          )}
+          {suggestedTagIds.length > 0 && !suggesting && (
+            <p style={{ fontSize: '13px', color: '#2e7d32', marginTop: '4px', marginBottom: '12px' }}>
+              Нейросеть рекомендовала теги: выделенные отмечены автоматически
+            </p>
+          )}
           <Textarea
             label='Текст'
             onChange={e => setBlogText(e.target.value)}

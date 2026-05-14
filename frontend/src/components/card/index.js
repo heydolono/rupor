@@ -14,8 +14,10 @@ const Card = ({
   author = {},
   handleLike,
   text = '',
-  likes_count = 0
+  likes_count = 0,
+  moderation_status
 }) => {
+  const isBlocked = moderation_status === 'blocked';
   const authContext = useContext(AuthContext);
   const [favorited, setFavorited] = useState(is_favorited);
   const [liked, setLiked] = useState(is_liked);
@@ -77,12 +79,21 @@ const Card = ({
         href={`/rupor/${id}`}
         title={<div className={styles.card__image} style={{ backgroundImage: `url(${image})` }} />}
       />
-      <div className={styles.card__body}>
-        <LinkComponent
-          className={styles.card__title}
-          href={`/rupor/${id}`}
-          title={name}
-        />
+        <div className={styles.card__body}>
+          {isBlocked && (
+            <span style={{
+              background: '#ffebee', color: '#c62828', fontSize: '12px',
+              padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold',
+              marginBottom: '8px', display: 'inline-block'
+            }}>
+              Заблокировано
+            </span>
+          )}
+          <LinkComponent
+            className={styles.card__title}
+            href={`/rupor/${id}`}
+            title={name}
+          />
         <TagsContainer tags={tags} />
         <div className={styles.card__text}>
           {truncateText(text)}

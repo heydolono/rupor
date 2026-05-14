@@ -39,7 +39,13 @@ function Comments({ blogId, authContext }) {
                 <div className={styles.commentsList}>
                     {comments.map(comment => (
                         <div key={comment.id} className={styles.commentItem}>
-                            <p>{comment.text}</p>
+                            {comment.moderation_status === 'blocked' ? (
+                                <p style={{ color: '#999', fontStyle: 'italic' }}>
+                                    Комментарий скрыт модерацией
+                                </p>
+                            ) : (
+                                <p>{comment.text}</p>
+                            )}
                         </div>
                     ))}
                 </div>

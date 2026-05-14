@@ -15,6 +15,7 @@ from users.models import (
     User, Subscribe
 )
 from users.validators import validate_username
+from moderation.services import ModerationService, SemanticSearchService
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -99,6 +100,8 @@ class BlogSerializer(serializers.ModelSerializer):
             'text',
             'likes_count',
             'comments_count',
+            'moderation_status',
+            'moderation_reason',
         )
 
     def get_is_favorited(self, obj):
@@ -122,7 +125,7 @@ class BlogSerializer(serializers.ModelSerializer):
 class BlogPostSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all(), required=True)
     author = CustomUserSerializer(read_only=True)
-    image = Base64ImageField()
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Blog
@@ -133,7 +136,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
             'name',
             'image',
             'text',
+            'moderation_status',
+            'moderation_reason',
+            'embedding',
         )
+        read_only_fields = ('moderation_status', 'moderation_reason', 'embedding')
 
     def validate_tags(self, value):
         tags = value
@@ -149,6 +156,17 @@ class BlogPostSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         tags = validated_data.pop('tags', [])
+        image_file = validated_data.get('image')
+        text = validated_data.get('text', '')
+        name = validated_data.get('name', '')
+        moderation_result = ModerationService.moderate_blog(
+            text=text, image_file=image_file
+        )
+        validated_data['moderation_status'] = moderation_result['moderation_status']
+        validated_data['moderation_reason'] = moderation_result['moderation_reason']
+        validated_data['embedding'] = SemanticSearchService.compute_embedding(
+            title=name, text=text
+        )
         blog = Blog.objects.create(**validated_data)
         blog.tags.set(tags)
         return blog
@@ -156,6 +174,11 @@ class BlogPostSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags', [])
+        name = validated_data.get('name', instance.name)
+        text = validated_data.get('text', instance.text)
+        validated_data['embedding'] = SemanticSearchService.compute_embedding(
+            title=name, text=text
+        )
         instance = super().update(instance, validated_data)
         instance.tags.clear()
         instance.tags.set(tags)
@@ -173,10 +196,17 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'author', 'text', 'created_at', 'updated_at', 'blog')
-        read_only_fields = ('created_at', 'updated_at')
+        fields = (
+            'id', 'author', 'text', 'created_at', 'updated_at', 'blog',
+            'moderation_status', 'moderation_reason',
+        )
+        read_only_fields = ('created_at', 'updated_at', 'moderation_status', 'moderation_reason')
 
     def create(self, validated_data):
+        text = validated_data.get('text', '')
+        moderation_result = ModerationService.moderate_comment(text=text)
+        validated_data['moderation_status'] = moderation_result['moderation_status']
+        validated_data['moderation_reason'] = moderation_result['moderation_reason']
         return Comment.objects.create(**validated_data)
 
 

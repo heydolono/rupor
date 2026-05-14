@@ -14,12 +14,26 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .filters import BlogFilter
 from .permissions import IsAuthorOrReadOnly, IsAdminOrReadOnly
 from .serializers import (BlogSerializer, BlogShortSerializer, BlogPostSerializer, TagSerializer, FavoriteCreateSerializer, CommentSerializer, LikeCreateSerializer)
+from moderation.services import TagSuggestionService, SemanticSearchService
 
 class BlogViewSet(ModelViewSet):
     queryset = Blog.objects.all()
     permission_classes = (IsAuthorOrReadOnly | IsAdminOrReadOnly,)
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = BlogFilter
+
+    def get_queryset(self):
+        qs = Blog.objects.all()
+        user = self.request.user
+        if user.is_staff:
+            return qs
+        if user.is_authenticated:
+            return qs.filter(
+                moderation_status='approved'
+            ) | qs.filter(
+                author=user
+            )
+        return qs.filter(moderation_status='approved')
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -71,6 +85,8 @@ class BlogViewSet(ModelViewSet):
     def get_comments(self, request, pk):
         blog = get_object_or_404(Blog, pk=pk)
         comments = blog.comments.all()
+        if not request.user.is_staff:
+            comments = comments.filter(moderation_status='approved')
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -82,6 +98,23 @@ class BlogViewSet(ModelViewSet):
             serializer.save(author=request.user, blog=blog)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(detail=True, methods=['get'], url_path='similar',
+            url_name='similar', permission_classes=[IsAuthorOrReadOnly])
+    def similar(self, request, pk):
+        blog = get_object_or_404(Blog, pk=pk)
+        similar_blogs = SemanticSearchService.find_similar(blog, request=request)
+        serializer = BlogSerializer(similar_blogs, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='suggest_tags',
+            url_name='suggest_tags', permission_classes=[IsAuthenticated])
+    def suggest_tags(self, request):
+        title = request.data.get('name', '')
+        text = request.data.get('text', '')
+        suggestions = TagSuggestionService.suggest(title=title, text=text)
+        return Response({'tags': suggestions}, status=status.HTTP_200_OK)
 
 
 class TagViewSet(ModelViewSet):

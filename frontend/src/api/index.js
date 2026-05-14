@@ -289,6 +289,28 @@ class Api {
     ).then(this.checkResponse)
   }
 
+  // similar
+  getSimilarBlogs ({ blog_id }) {
+    const token = localStorage.getItem('token')
+    const authorization = token ? { 'authorization': `Token ${token}` } : {}
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+    return fetch(
+      `/api/blog/${blog_id}/similar/`,
+      {
+        method: 'GET',
+        headers: { ...this._headers, ...authorization },
+        signal: controller.signal
+      }
+    ).then(res => {
+      clearTimeout(timeout)
+      return this.checkResponse(res)
+    }).catch(err => {
+      clearTimeout(timeout)
+      throw err
+    })
+  }
+
   // tags
   getTags () {
     const token = localStorage.getItem('token')
@@ -301,6 +323,30 @@ class Api {
         }
       }
     ).then(this.checkResponse)
+  }
+
+  suggestTags ({ name, text }) {
+    const token = localStorage.getItem('token')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+    return fetch(
+      `/api/blog/suggest_tags/`,
+      {
+        method: 'POST',
+        headers: {
+          ...this._headers,
+          'authorization': `Token ${token}`
+        },
+        body: JSON.stringify({ name, text }),
+        signal: controller.signal
+      }
+    ).then(res => {
+      clearTimeout(timeout)
+      return this.checkResponse(res)
+    }).catch(err => {
+      clearTimeout(timeout)
+      throw err
+    })
   }
 
   deleteBlog ({ blog_id }) {
