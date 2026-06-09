@@ -1,12 +1,13 @@
 .checkbox {
   position: relative;
   min-width: 24px;
+  width: 24px;
   height: 24px;
   border-radius: 50%;
   background-color: #ddd;
   border: none;
   outline: none;
-  margin-right: 8px;
+  margin-right: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -17,9 +18,15 @@
 .checkbox-container {
   display: flex;
   align-items: center;
-  margin-right: 24px;
+  gap: 8px;
+  max-width: 100%;
   font-size: 16px;
   font-weight: 500;
+  line-height: 1.25;
+}
+
+.checkbox-container span {
+  overflow-wrap: anywhere;
 }
 
 .checkbox_active {
@@ -38,4 +45,3 @@
 .checkbox_style_purple {
   color: #8775D2;
 }
-

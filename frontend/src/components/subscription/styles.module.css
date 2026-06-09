@@ -1,12 +1,15 @@
 .subscription {
   display: flex;
   flex-direction: column;
-  border: 1px solid #EEEEEE;
+  border: 1px solid #E7EAF3;
   box-sizing: border-box;
   border-radius: 8px;
   max-width: 363px;
   width: 100%;
+  min-height: 100%;
+  background: #FFFFFF;
   text-align: left;
+  box-shadow: 0 10px 28px rgba(31, 36, 48, 0.08);
 }
 
 .subscriptionHeader {
@@ -14,7 +17,7 @@
 }
 
 .subscriptionRecipeLink {
-  color: #000;
+  color: #1F2430;
   text-decoration: none;
 }
 
@@ -33,7 +36,7 @@
     font-weight: bold;
     font-size: 20px;
     line-height: 24px;
-    color: #000000;
+    color: #1F2430;
     margin: 0;
 }
 
@@ -55,7 +58,7 @@
     position: absolute;
     left: 0;
     bottom: 0;
-    background: #EEEEEE;
+    background: #E7EAF3;
     height: 1px;
     width: calc(100% - 72px);
 }
@@ -102,7 +105,7 @@
     max-width: 200px;
     font-size: 16px;
     line-height: 20px;
-    color: #000;
+    color: #1F2430;
     margin: 10px 0 13px;
     grid-area: title;
 }
@@ -113,6 +116,8 @@
     grid-area: image;
     border-radius: 50%;
     object-fit: cover;
+    background: #EFF3FA;
+    box-shadow: 0 6px 16px rgba(31, 36, 48, 0.12);
 }
 
 .subscriptionRecipeText {
@@ -122,7 +127,7 @@
     font-size: 14px;
     line-height: 17px;
     max-width: 200px;
-    color: #000;
+    color: #626b7d;
     display: flex;
     align-items: center;
     grid-area: text;
@@ -157,5 +162,4 @@
     max-width: 100%;
   }
 }
-
 

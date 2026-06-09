@@ -1,7 +1,8 @@
 .footer {
-  background: #000000;
+  background: #151923;
   height: 90px;
   flex: 0 0 auto;
+  box-shadow: 0 -10px 30px rgba(31, 36, 48, 0.08);
 }
 
 .footer__brand {
@@ -37,4 +38,10 @@
     font-size: 16px;
     line-height: 20px;
     color: #FFFFFF;
+    text-decoration: none;
+    opacity: 0.9;
+}
+
+.footer__link:hover {
+    opacity: 1;
 }

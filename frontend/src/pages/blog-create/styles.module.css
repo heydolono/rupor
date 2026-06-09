@@ -82,6 +82,14 @@
   font-size: 18px;
 }
 
+.checkboxGroupTags {
+  max-width: 100%;
+}
+
+.checkboxGroupItem {
+  flex-shrink: 0;
+}
+
 .ingredientsAddedItem {
   margin-bottom: 20px;
   display: flex;
@@ -113,11 +121,11 @@
   }
 
   .checkboxGroupTags {
-    display: block;
+    display: flex;
   }
 
   .checkboxGroupItem {
-    margin-bottom: 6px;
+    margin-bottom: 0;
   }
 
   .cookingTime {

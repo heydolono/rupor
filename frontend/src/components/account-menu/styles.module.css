@@ -7,11 +7,11 @@
   background: none;
   height: 48px;
   line-height: 48px;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0px 24px;
   text-decoration: none;
   border: 1px solid transparent;
-  transition: background 0.2s;
+  transition: background 0.2s, box-shadow 0.2s;
   outline: none;
   user-select: none;
   cursor: pointer;
@@ -19,7 +19,7 @@
   display: inline-block;
   background: #4A61DD;
   color: #FFF;
-  transform: translateY(-9px);
+  box-shadow: 0 8px 20px rgba(74, 97, 221, 0.2);
 }
 
 .menuButton:hover {
@@ -28,7 +28,7 @@
 
 .menuLink {
   white-space: nowrap;
-  color: #000;
+  color: #303746;
   background: none;
   border: none;
   cursor: pointer;
@@ -43,6 +43,10 @@
 
 .menuLink:last-child {
   margin-right: 0px;
+}
+
+.menuLink:hover {
+  color: #4A61DD;
 }
 
 .menu {

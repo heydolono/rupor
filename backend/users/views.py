@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 from .models import Subscribe
 
@@ -22,6 +23,10 @@ class CustomUserViewSet(UserViewSet):
         if request.method == 'POST':
             author_id = self.kwargs.get('id')
             author = get_object_or_404(User, id=author_id)
+            if author == request.user:
+                raise ValidationError('Нельзя подписаться на самого себя')
+            if Subscribe.objects.filter(user=request.user, author=author).exists():
+                raise ValidationError('Вы уже подписаны на этого автора')
             serializer = SubscribeSerializer(author, data=request.data, context={"request": request})
             serializer.is_valid(raise_exception=True)
             Subscribe.objects.create(user=request.user, author=author)

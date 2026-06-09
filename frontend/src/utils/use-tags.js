@@ -4,13 +4,9 @@ export function useTags() {
   const [ value, setValue ] = React.useState([])
 
   const handleChange = id => {
-    const valueUpdated = value.map(item => {
-      if (item.id === id) {
-        item.value = !item.value
-      }
-      return item
-    })
-    setValue(valueUpdated)
+    setValue(prev => prev.map(item => (
+      item.id === id ? { ...item, value: !item.value } : item
+    )))
   }
 
   return { value, handleChange, setValue }

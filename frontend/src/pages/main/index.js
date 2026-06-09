@@ -51,7 +51,10 @@ const HomePage = ({ updateOrders }) => {
       </MetaTags>
       <div className={styles.title}>
         <Title title='Лента' />
+      </div>
+      <div className={styles.filters}>
         <CheckboxGroup
+          className={styles.filterGroup}
           values={tagsValue}
           handleChange={value => {
             setBlogsPage(1)
@@ -77,4 +80,3 @@ const HomePage = ({ updateOrders }) => {
 }
 
 export default HomePage
-

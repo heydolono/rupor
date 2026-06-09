@@ -13,14 +13,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
+  color: #4d5566;
   font-size: 20px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.paginationItem:hover {
+  background: #F0F3FF;
+  color: #4A61DD;
 }
 
 .paginationItemActive {
   color: #FFF;
   background-color: #4A61DD;
   cursor: default;
+  box-shadow: 0 8px 20px rgba(74, 97, 221, 0.2);
+}
+
+.paginationItemActive:hover {
+  color: #FFF;
+  background-color: #4A61DD;
 }
 
 .arrow {

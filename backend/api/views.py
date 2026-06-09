@@ -1,6 +1,3 @@
-from django.db.models import Sum
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from rupor.models import Favourite, Blog, Tag, Like, Comment
 from rest_framework import status
 from rest_framework.decorators import action
@@ -28,11 +25,13 @@ class BlogViewSet(ModelViewSet):
         if user.is_staff:
             return qs
         if user.is_authenticated:
-            return qs.filter(
-                moderation_status='approved'
-            ) | qs.filter(
-                author=user
-            )
+            return (
+                qs.filter(
+                    moderation_status='approved'
+                ) | qs.filter(
+                    author=user
+                )
+            ).distinct()
         return qs.filter(moderation_status='approved')
     
     def perform_create(self, serializer):
@@ -51,7 +50,7 @@ class BlogViewSet(ModelViewSet):
             serializer = FavoriteCreateSerializer(data={'blog': pk}, context={'request': request})
             if Favourite.objects.filter(user=request.user, blog__id=pk).exists():
                 return Response({'errors': 'Блог уже был добавлен'}, status=status.HTTP_400_BAD_REQUEST)
-            blog = get_object_or_404(Blog, id=pk)
+            blog = self.get_object()
             Favourite.objects.create(user=request.user, blog=blog)
             serializerrec = BlogShortSerializer(blog)
             return Response(serializerrec.data, status=status.HTTP_201_CREATED)
@@ -65,7 +64,7 @@ class BlogViewSet(ModelViewSet):
     
     @action(detail=True, methods=['post', 'delete'], url_path='like', url_name='like', permission_classes=[IsAuthenticated])
     def like(self, request, pk):
-        blog = get_object_or_404(Blog, pk=pk)
+        blog = self.get_object()
         if request.method == 'POST':
             serializer = LikeCreateSerializer(data={'blog': pk}, context={'request': request})
             if Like.objects.filter(user=request.user, blog__id=pk).exists():
@@ -83,7 +82,7 @@ class BlogViewSet(ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='comments', url_name='comments', permission_classes=[IsAuthorOrReadOnly])
     def get_comments(self, request, pk):
-        blog = get_object_or_404(Blog, pk=pk)
+        blog = self.get_object()
         comments = blog.comments.all()
         if not request.user.is_staff:
             comments = comments.filter(moderation_status='approved')
@@ -93,7 +92,7 @@ class BlogViewSet(ModelViewSet):
     @action(detail=True, methods=['post'], url_path='comment', url_name='comment', permission_classes=[IsAuthenticated])
     def add_comment(self, request, pk):
         serializer = CommentSerializer(data={'text': request.data.get('text'), 'blog': pk}, context={'request': request})
-        blog = get_object_or_404(Blog, id=pk)
+        blog = self.get_object()
         if serializer.is_valid():
             serializer.save(author=request.user, blog=blog)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -103,7 +102,7 @@ class BlogViewSet(ModelViewSet):
     @action(detail=True, methods=['get'], url_path='similar',
             url_name='similar', permission_classes=[IsAuthorOrReadOnly])
     def similar(self, request, pk):
-        blog = get_object_or_404(Blog, pk=pk)
+        blog = self.get_object()
         similar_blogs = SemanticSearchService.find_similar(blog, request=request)
         serializer = BlogSerializer(similar_blogs, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -134,5 +133,3 @@ class TagListView(APIView):
         tags = Tag.objects.all()
         serializer = TagSerializer(tags, many=True)
         return Response(serializer.data)
-
-

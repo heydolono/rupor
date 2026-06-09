@@ -10,6 +10,7 @@
   text-align: left;
   flex: 1;
   max-width: 230px;
+  color: #303746;
 }
 
 .fileInput {
@@ -20,8 +21,10 @@
   width: 182px;
   cursor: pointer;
   height: 48px;
-  background: #DEDEDE;
-  border-radius: 6px;
+  background: #F0F3FF;
+  color: #4A61DD;
+  border: 1px solid #DEE2F2;
+  border-radius: 8px;
   font-size: 18px;
   font-weight: 400;
   line-height: 22px;
@@ -29,6 +32,12 @@
   align-items: center;
   justify-content: center;
   margin-right: 20px;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.button:hover {
+  background: #D8DEFF;
+  border-color: transparent;
 }
 
 .image {
@@ -36,6 +45,7 @@
   height: 60px;
   background-size: cover;
   background-position: 50% 50%;
-  border-radius: 5px;
-  border: 1px solid black;
+  border-radius: 8px;
+  border: 1px solid #D8DEEA;
+  box-shadow: 0 6px 16px rgba(31, 36, 48, 0.1);
 }

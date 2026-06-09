@@ -12,6 +12,19 @@ class ModerationService:
     TOXICITY_THRESHOLD = 0.7
     NSFW_THRESHOLD = 0.7
 
+    TOXIC_LABELS = {'toxic', 'label_1', '1'}
+    SAFE_LABELS = {'non-toxic', 'non_toxic', 'neutral', 'normal', 'label_0', '0'}
+    NSFW_LABELS = {'nsfw', 'porn', 'sexy', 'hentai', 'drawings'}
+    TEXT_CHUNK_SIZE = 512
+
+    @classmethod
+    def _iter_text_chunks(cls, text):
+        text = text.strip()
+        for start in range(0, len(text), cls.TEXT_CHUNK_SIZE):
+            chunk = text[start:start + cls.TEXT_CHUNK_SIZE].strip()
+            if chunk:
+                yield chunk
+
     @classmethod
     def _get_text_classifier(cls):
         if cls._text_classifier is None:
@@ -52,22 +65,35 @@ class ModerationService:
             return {'is_toxic': False, 'toxicity_score': 0.0, 'label': 'non-toxic', 'error': 'model_not_loaded'}
 
         try:
-            result = classifier(text[:512])[0]
-            label = result['label']
-            score = result['score']
-            is_toxic = label == 'toxic' and score >= cls.TOXICITY_THRESHOLD
-            return {
-                'is_toxic': is_toxic,
-                'toxicity_score': round(score, 4),
-                'label': label,
-            }
+            best_result = {'is_toxic': False, 'toxicity_score': 0.0, 'label': 'non-toxic'}
+            for chunk in cls._iter_text_chunks(text):
+                result = classifier(chunk)[0]
+                label = str(result.get('label', '')).lower()
+                score = float(result.get('score', 0.0))
+                is_toxic = (
+                    label in cls.TOXIC_LABELS
+                    and score >= cls.TOXICITY_THRESHOLD
+                )
+                if is_toxic:
+                    return {
+                        'is_toxic': True,
+                        'toxicity_score': round(score, 4),
+                        'label': label,
+                    }
+                if score > best_result['toxicity_score']:
+                    best_result = {
+                        'is_toxic': False,
+                        'toxicity_score': round(score, 4),
+                        'label': label,
+                    }
+            return best_result
         except Exception as e:
             logger.error(f'Text moderation error: {e}')
             return {'is_toxic': False, 'toxicity_score': 0.0, 'label': 'non-toxic', 'error': str(e)}
 
     @classmethod
     def check_image(cls, image_file):
-        if image_file is None:
+        if not image_file or not getattr(image_file, 'name', None):
             return {'is_nsfw': False, 'nsfw_score': 0.0}
 
         classifier = cls._get_image_classifier()
@@ -75,12 +101,19 @@ class ModerationService:
             return {'is_nsfw': False, 'nsfw_score': 0.0, 'error': 'model_not_loaded'}
 
         try:
-            image = Image.open(BytesIO(image_file.read()))
+            image = Image.open(BytesIO(image_file.read())).convert('RGB')
             image_file.seek(0)
-            result = classifier(image)[0]
-            label = result['label']
-            score = result['score']
-            is_nsfw = label == 'nsfw' and score >= cls.NSFW_THRESHOLD
+            results = classifier(image)
+            nsfw_result = next(
+                (
+                    item for item in results
+                    if str(item.get('label', '')).lower() in cls.NSFW_LABELS
+                ),
+                results[0] if results else {},
+            )
+            label = str(nsfw_result.get('label', '')).lower()
+            score = float(nsfw_result.get('score', 0.0))
+            is_nsfw = label in cls.NSFW_LABELS and score >= cls.NSFW_THRESHOLD
             return {
                 'is_nsfw': is_nsfw,
                 'nsfw_score': round(score, 4),
@@ -95,17 +128,26 @@ class ModerationService:
         reasons = []
 
         text_result = cls.check_text(text)
+        if text_result.get('error'):
+            reasons.append(f'Ошибка текстовой модерации: {text_result["error"]}')
         if text_result.get('is_toxic'):
             reasons.append(
                 f'Токсичный текст (скор: {text_result["toxicity_score"]})'
             )
 
         image_result = cls.check_image(image_file)
+        if image_result.get('error'):
+            reasons.append(f'Ошибка модерации изображения: {image_result["error"]}')
         if image_result.get('is_nsfw'):
             reasons.append(
                 f'NSFW-изображение (скор: {image_result["nsfw_score"]})'
             )
 
+        if text_result.get('error') or image_result.get('error'):
+            return {
+                'moderation_status': 'pending',
+                'moderation_reason': '; '.join(reasons),
+            }
         if reasons:
             return {
                 'moderation_status': 'blocked',
@@ -119,6 +161,13 @@ class ModerationService:
     @classmethod
     def moderate_comment(cls, text):
         text_result = cls.check_text(text)
+        if text_result.get('error'):
+            return {
+                'moderation_status': 'pending',
+                'moderation_reason': (
+                    f'Ошибка текстовой модерации: {text_result["error"]}'
+                ),
+            }
         if text_result.get('is_toxic'):
             return {
                 'moderation_status': 'blocked',
@@ -185,22 +234,26 @@ class TagSuggestionService:
             return []
 
         tag_embeddings = cls._get_tag_embeddings()
-        if not tag_embeddings:
+        if tag_embeddings is None or len(tag_embeddings) == 0:
             return []
 
-        content_embedding = model.encode(content, show_progress_bar=False)
+        try:
+            content_embedding = model.encode(content, show_progress_bar=False)
 
-        similarities = []
-        for i, tag_emb in enumerate(tag_embeddings):
-            sim = float(content_embedding @ tag_emb.T) / (
-                float((content_embedding ** 2).sum()) ** 0.5 *
-                float((tag_emb ** 2).sum()) ** 0.5 + 1e-8
-            )
-            if sim >= cls.SIMILARITY_THRESHOLD:
-                similarities.append({
-                    **cls._tags_cache[i],
-                    'score': round(sim, 4),
-                })
+            similarities = []
+            for i, tag_emb in enumerate(tag_embeddings):
+                sim = SemanticSearchService._cosine_similarity(
+                    content_embedding,
+                    tag_emb,
+                )
+                if sim >= cls.SIMILARITY_THRESHOLD:
+                    similarities.append({
+                        **cls._tags_cache[i],
+                        'score': round(sim, 4),
+                    })
+        except Exception as e:
+            logger.error(f'Tag suggestion error: {e}')
+            return []
 
         similarities.sort(key=lambda x: x['score'], reverse=True)
         return similarities
@@ -242,15 +295,19 @@ class SemanticSearchService:
         model = cls._get_model()
         if model is None:
             return None
-        embedding = model.encode(content, show_progress_bar=False)
-        return embedding.tolist()
+        try:
+            embedding = model.encode(content, show_progress_bar=False)
+            return embedding.tolist()
+        except Exception as e:
+            logger.error(f'Embedding computation error: {e}')
+            return None
 
     @classmethod
     def find_similar(cls, blog, request=None, max_results=None):
         if max_results is None:
             max_results = cls.MAX_RESULTS
 
-        if blog.embedding is None:
+        if not blog.embedding:
             return []
 
         from rupor.models import Blog as BlogModel
@@ -263,6 +320,7 @@ class SemanticSearchService:
             )
         else:
             qs = qs.filter(moderation_status='approved')
+        qs = qs.distinct()
 
         blog_emb = blog.embedding
         scored = []
@@ -278,6 +336,10 @@ class SemanticSearchService:
 
     @staticmethod
     def _cosine_similarity(a, b):
+        a = list(a)
+        b = list(b)
+        if len(a) != len(b):
+            return 0.0
         dot = sum(x * y for x, y in zip(a, b))
         norm_a = sum(x * x for x in a) ** 0.5
         norm_b = sum(x * x for x in b) ** 0.5

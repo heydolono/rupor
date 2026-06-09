@@ -54,4 +54,16 @@ body {
   min-height: 100%;
   padding: 0;
   margin: 0;
+  background: #f5f7fb;
+  color: #1f2430;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(244, 247, 252, 0.95) 0%, #ffffff 360px),
+    #ffffff;
+}
+
+a {
+  color: inherit;
 }

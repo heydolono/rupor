@@ -10,7 +10,7 @@
   line-height: 48px;
   text-decoration: none;
   border: 1px solid transparent;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   outline: none;
   user-select: none;
   cursor: pointer;
@@ -20,6 +20,11 @@
 
 .button:active {
   box-shadow: 0 0 7px #ddd;
+  transform: translateY(1px);
+}
+
+.button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(74, 97, 221, 0.18);
 }
 
 .button_style_light {
@@ -47,6 +52,7 @@
 .button_style_dark-blue {
   background: #4A61DD;
   color: #FFF;
+  box-shadow: 0 8px 20px rgba(74, 97, 221, 0.2);
 }
 
 .button_disabled {

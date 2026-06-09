@@ -4,9 +4,9 @@
   font-weight: 500;
   font-family: Montserrat, Helvetica, Arial, sans-serif;
   font-size: 14px;
-  line-height: 1;
-  border-radius: 24px;
-  margin-right: 8px;
+  line-height: 1.25;
+  border-radius: 999px;
+  margin: 0 8px 8px 0;
 }
 
 .tag_type_orange {

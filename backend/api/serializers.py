@@ -1,13 +1,9 @@
 import base64
 from django.db import transaction
-from django.db.models import F
 from django.core.files.base import ContentFile
-from django.conf import settings
-from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
-from rest_framework.fields import IntegerField, SerializerMethodField
-from rest_framework.exceptions import ValidationError
+from rest_framework.fields import SerializerMethodField
 
 from rupor.models import (
     Tag, Blog, Comment, Like, Favourite)
@@ -36,8 +32,9 @@ class CustomUserSerializer(UserSerializer):
         fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed',)
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or user.is_anonymous:
             return False
         return Subscribe.objects.filter(user=user, author=obj).exists()
 
@@ -50,17 +47,25 @@ class SubscribeSerializer(CustomUserSerializer):
         fields = CustomUserSerializer.Meta.fields + ('blog_count', 'blog')
         read_only_fields = ('email', 'username')
 
+    def _get_visible_blog_queryset(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        blog = obj.blog.all()
+        if user and (user.is_staff or user == obj):
+            return blog
+        return blog.filter(moderation_status='approved')
+
     def get_blog(self, obj):
         request = self.context.get('request')
         limit = request.GET.get('blog_limit')
-        blog = obj.blog.all()
+        blog = self._get_visible_blog_queryset(obj)
         if limit:
             blog = blog[:int(limit)]
         serializer = BlogShortSerializer(blog, many=True, read_only=True)
         return serializer.data
 
     def get_blog_count(self, obj):
-        return obj.blog.count()
+        return self._get_visible_blog_queryset(obj).count()
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -105,22 +110,31 @@ class BlogSerializer(serializers.ModelSerializer):
         )
 
     def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
         return (
-            self.context.get('request').user.is_authenticated
-            and Favourite.objects.filter(user=self.context['request'].user, blog=obj).exists()
+            user is not None
+            and user.is_authenticated
+            and Favourite.objects.filter(user=user, blog=obj).exists()
         )
     
     def get_is_liked(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
         return (
-            self.context.get('request').user.is_authenticated
-            and Like.objects.filter(user=self.context['request'].user, blog=obj).exists()
+            user is not None
+            and user.is_authenticated
+            and Like.objects.filter(user=user, blog=obj).exists()
         )
 
     def get_likes_count(self, obj):
         return Like.objects.filter(blog=obj).count()
 
     def get_comments_count(self, obj):
-        return Comment.objects.filter(blog=obj).count()
+        return Comment.objects.filter(
+            blog=obj,
+            moderation_status='approved',
+        ).count()
 
 class BlogPostSerializer(serializers.ModelSerializer):
     tags = serializers.PrimaryKeyRelatedField(many=True, queryset=Tag.objects.all(), required=True)
@@ -160,7 +174,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
         text = validated_data.get('text', '')
         name = validated_data.get('name', '')
         moderation_result = ModerationService.moderate_blog(
-            text=text, image_file=image_file
+            text=f'{name}\n{text}', image_file=image_file
         )
         validated_data['moderation_status'] = moderation_result['moderation_status']
         validated_data['moderation_reason'] = moderation_result['moderation_reason']
@@ -173,15 +187,21 @@ class BlogPostSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        tags = validated_data.pop('tags', [])
+        tags = validated_data.pop('tags', None)
         name = validated_data.get('name', instance.name)
         text = validated_data.get('text', instance.text)
+        image_file = validated_data.get('image', instance.image)
+        moderation_result = ModerationService.moderate_blog(
+            text=f'{name}\n{text}', image_file=image_file
+        )
+        validated_data['moderation_status'] = moderation_result['moderation_status']
+        validated_data['moderation_reason'] = moderation_result['moderation_reason']
         validated_data['embedding'] = SemanticSearchService.compute_embedding(
             title=name, text=text
         )
         instance = super().update(instance, validated_data)
-        instance.tags.clear()
-        instance.tags.set(tags)
+        if tags is not None:
+            instance.tags.set(tags)
         instance.save()
         return instance
 

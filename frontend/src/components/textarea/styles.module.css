@@ -16,13 +16,14 @@
   padding-right: 30px;
   text-align: left;
   flex: 1;
+  color: #303746;
 }
 
 .textareaField {
     background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, 0.5);
+    border: 1px solid #D8DEEA;
     box-sizing: border-box;
-    border-radius: 6px;
+    border-radius: 8px;
     resize: none;
     outline: none;
     font-family: 'Montserrat', sans-serif;
@@ -34,10 +35,11 @@
     padding: 12px 18px;
     flex-basis: 370px;
     width: 100%;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .textareaField:focus {
     border: 1px solid #4A61DD;
-    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 0 3px rgba(74, 97, 221, 0.12);
 }
 
 

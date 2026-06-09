@@ -126,16 +126,20 @@ const SingleCard = ({ loadItem, updateOrders }) => {
             )}
             <Comments blogId={id} authContext={authContext} />
             {similarBlogs.length > 0 && (
-              <div style={{ marginTop: '40px' }}>
-                <h2 style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '24px' }}>
+              <div className={styles.similar}>
+                <h2 className={styles.similar__title}>
                   Похожие записи
                 </h2>
-                <p style={{ fontSize: '13px', color: '#666', marginTop: '-8px', marginBottom: '16px' }}>
+                <p className={styles.similar__caption}>
                   Найдено нейросетью по смыслу текста
                 </p>
-                <CardList>
+                <CardList className={styles.similar__list}>
                   {similarBlogs.map(card => (
-                    <Card {...card} key={card.id} />
+                    <Card
+                      {...card}
+                      key={card.id}
+                      className={styles.similar__card}
+                    />
                   ))}
                 </CardList>
               </div>

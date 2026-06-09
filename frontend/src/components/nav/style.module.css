@@ -22,7 +22,7 @@
 .nav__item {
   display: flex;
   align-items: center;
-  margin-right: 28px;
+  margin-right: 12px;
   height: 100%;
   color: #000000;
   cursor: pointer;
@@ -52,14 +52,22 @@
     font-size: 16px;
     line-height: 20px;
     color: inherit;
-    padding-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 999px;
     cursor: inherit;
     font-family: 'Montserrat', sans-serif;
+    transition: background .2s, color .2s;
+}
+
+.nav__item:hover .nav__link {
+  background: #f0f3ff;
+  color: #4A61DD;
 }
 
 .nav__link_active {
-  border-bottom: 1px solid #4A61DD;
+  border-bottom: none;
   color: #4A61DD;
+  background: #f0f3ff;
 }
 
 .orders-count {

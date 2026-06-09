@@ -88,7 +88,10 @@ const UserPage = ({ updateOrders }) => {
           })}
           title={user ? `${user.first_name} ${user.last_name}` : ''}
         />
+      </div>
+      <div className={styles.filters}>
         <CheckboxGroup
+          className={styles.filterGroup}
           values={tagsValue}
           handleChange={value => {
             setBlogsPage(1)
@@ -128,4 +131,3 @@ const UserPage = ({ updateOrders }) => {
 }
 
 export default UserPage
-

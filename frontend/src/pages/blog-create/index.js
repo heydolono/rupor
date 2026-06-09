@@ -15,6 +15,8 @@ const BlogCreate = ({ onEdit }) => {
   const [suggestedTagIds, setSuggestedTagIds] = useState([]);
   const [suggesting, setSuggesting] = useState(false);
   const debounceRef = useRef(null);
+  const safetyTimerRef = useRef(null);
+  const autoSelectedTagIdsRef = useRef([]);
 
   useEffect(() => {
     api.getTags()
@@ -27,27 +29,53 @@ const BlogCreate = ({ onEdit }) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!blogName.trim() && !blogText.trim()) {
       setSuggestedTagIds([]);
+      setValue(prev => prev.map(tag => (
+        autoSelectedTagIdsRef.current.includes(Number(tag.id))
+          ? { ...tag, value: false }
+          : tag
+      )));
+      autoSelectedTagIdsRef.current = [];
       return;
     }
     setSuggesting(true);
-    const safetyTimer = setTimeout(() => setSuggesting(false), 20000);
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    safetyTimerRef.current = setTimeout(() => setSuggesting(false), 20000);
     debounceRef.current = setTimeout(() => {
       api.suggestTags({ name: blogName, text: blogText })
         .then(res => {
-          const ids = (res.tags || []).map(t => t.id);
+          const ids = (res.tags || [])
+            .slice(0, 3)
+            .map(t => Number(t.id));
+          const previousAutoIds = autoSelectedTagIdsRef.current;
           setSuggestedTagIds(ids);
           setValue(prev => prev.map(tag => ({
             ...tag,
-            value: ids.includes(tag.id) || tag.value,
+            value: (
+              (tag.value && !previousAutoIds.includes(Number(tag.id))) ||
+              ids.includes(Number(tag.id))
+            ),
           })));
+          autoSelectedTagIdsRef.current = ids;
         })
         .catch(() => {})
         .finally(() => {
           setSuggesting(false);
-          clearTimeout(safetyTimer);
+          if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
         });
     }, 800);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    };
   }, [blogName, blogText]);
+
+  const handleTagChange = id => {
+    autoSelectedTagIdsRef.current = autoSelectedTagIdsRef.current.filter(
+      tagId => tagId !== Number(id)
+    );
+    handleChange(id);
+  };
 
   const checkIfDisabled = () => {
     return (
@@ -105,7 +133,7 @@ const BlogCreate = ({ onEdit }) => {
             labelClassName={styles.checkboxGroupLabel}
             tagsClassName={styles.checkboxGroupTags}
             checkboxClassName={styles.checkboxGroupItem}
-            handleChange={handleChange}
+            handleChange={handleTagChange}
           />
           {suggesting && (
             <p style={{ fontSize: '13px', color: '#999', marginTop: '4px' }}>

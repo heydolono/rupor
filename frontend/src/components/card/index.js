@@ -3,6 +3,7 @@ import { LinkComponent, Icons, Button, TagsContainer } from '../index';
 import { useContext, useState } from 'react';
 import { AuthContext } from '../../contexts';
 import Api from '../../api';
+import cn from 'classnames';
 
 const Card = ({
   name = 'Без названия',
@@ -15,7 +16,8 @@ const Card = ({
   handleLike,
   text = '',
   likes_count = 0,
-  moderation_status
+  moderation_status,
+  className
 }) => {
   const isBlocked = moderation_status === 'blocked';
   const authContext = useContext(AuthContext);
@@ -73,7 +75,7 @@ const Card = ({
   };
 
   return (
-    <div className={styles.card}>
+    <div className={cn(styles.card, className)}>
       <LinkComponent
         className={styles.card__title}
         href={`/rupor/${id}`}

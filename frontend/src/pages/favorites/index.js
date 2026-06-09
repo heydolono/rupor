@@ -50,7 +50,10 @@ const Favorites = ({ updateOrders }) => {
       </MetaTags>
       <div className={styles.title}>
         <Title title='Избранное' />
+      </div>
+      <div className={styles.filters}>
         <CheckboxGroup
+          className={styles.filterGroup}
           values={tagsValue}
           handleChange={value => {
             setBlogsPage(1)
@@ -76,4 +79,3 @@ const Favorites = ({ updateOrders }) => {
 }
 
 export default Favorites
-

@@ -1,10 +1,10 @@
 .form {
   max-width: 770px;
   background: #FFF;
-  border: 1px solid #EEE;
+  border: 1px solid #E7EAF3;
   box-sizing: border-box;
-  box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.25);
-  border-radius: 16px;
+  box-shadow: 0 18px 48px rgba(31, 36, 48, 0.1);
+  border-radius: 12px;
   padding: 54px 100px 70px 68px;
 }
 

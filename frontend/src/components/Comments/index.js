@@ -1,7 +1,7 @@
 // Comments.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
-import { Container, Textarea2, Button } from '../../components';
+import { Textarea2 } from '../../components';
 import styles from './styles.module.css';
 
 function Comments({ blogId, authContext }) {
@@ -53,7 +53,7 @@ function Comments({ blogId, authContext }) {
             {authContext && (
                 <div className={styles.commentForm}>
                     <Textarea2
-                        className={styles.commentTextarea}
+                        textareaClassName={styles.commentTextarea}
                         value={newComment}
                         onChange={e => setNewComment(e.target.value)}
                         placeholder="Введите ваш комментарий"
